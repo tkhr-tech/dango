@@ -16,7 +16,8 @@ type IntegerPart = "0" | `${Exclude<"1" | "2" | "3" | "4" | "5" | "6" | "7" | "8
 type DecimalPart = `.${NonEmpty<`${number}`>}`;
 type ValidNumberString = IntegerPart | `${IntegerPart}${DecimalPart}`;
 function isValidNumberString(s: string): s is ValidNumberString {
-  return /^[1-9]\d*(\.\d+)?$|^0(\.\d+)?$/.test(s);
+  //return /^[1-9]\d*(\.\d+)?$|^0(\.\d+)?$/.test(s);
+  return /^[1-9]\d*\.?(\d+)?$|^0\.?(\d+)?$/.test(s);
 }
 
 type OperatorStrings = "+" | "-" | "*" | "/" | "=";
@@ -24,7 +25,7 @@ function isValidOperatorString(s: string): s is OperatorStrings {
   return /^[\+\-\*\/\=]$/.test(s);
 }
 
-type CalculatorViewString = ValidNumberString | OperatorStrings;
+type CalculatorViewString = ValidNumberString | OperatorStrings | "C";
 
 
 const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
@@ -49,34 +50,40 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
   const numpad_onclick = (num_str: string) => () => {
     if (isValidOperatorString(display_string)){
       // TODO :: implement here // 
+
     } else if(isValidNumberString(display_string)){
       if (display_string === "0"){
         try_set_display_string(num_str);
       } else {
         try_append_display_string(num_str);
       }
+
     } else {
       // ??? //
+
     }
     return () => { }; // Do nothing
   }
 
   const create_button = (button_string: string) => {
-    if (isValidNumberString(button_string)) {
+    const helper_func = (color_class: string) => {
       return (<>
         <Button
-          className="py-2 bg-cyan-600 text-white rounded border border-gray-200 cursor-pointer"
+          className={`py-2 ${color_class} text-white rounded border border-gray-200 cursor-pointer`}
           onClick={numpad_onclick(button_string)}
         >
           <span className="select-none text-xl">{button_string}</span>
         </Button>
       </>);
-    } else if (isValidOperatorString(button_string)) {
-
-    } else { 
-
     }
 
+    if (isValidNumberString(button_string)) {
+      return helper_func("bg-cyan-600");
+    } else if (isValidOperatorString(button_string)) {
+      return helper_func("bg-green-600");
+    } else { 
+      return helper_func("bg-gray-600");
+    }
   }
 
   return (
@@ -104,16 +111,16 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
 
           {/* ２列目 START */}
           <div className="grid grid-cols-10 gap-2">
-            {create_button("0")}
-            {create_button("1")}
-            {create_button("2")}
-            {create_button("3")}
-            {create_button("4")}
-            {create_button("5")}
-            {create_button("6")}
-            {create_button("7")}
-            {create_button("8")}
-            {create_button("9")}
+            {create_button(".")}
+            {create_button("+")}
+            {create_button("-")}
+            {create_button("/")}
+            {create_button("*")}
+            {create_button("=")}
+            {create_button(" ")}
+            {create_button(" ")}
+            {create_button(" ")}
+            {create_button(" ")}
           </div>
           {/* ２列目 END */}
 
