@@ -17,19 +17,25 @@ type DecimalPart = `.${NonEmpty<`${number}`>}`;
 type ValidNumberString = IntegerPart | `${IntegerPart}${DecimalPart}`;
 function isValidNumberString(s: string): s is ValidNumberString {
   //return /^[1-9]\d*(\.\d+)?$|^0(\.\d+)?$/.test(s);
-  return /^[1-9]\d*\.?(\d+)?$|^0\.?(\d+)?$/.test(s);
+  //return /^[1-9]\d*\.?(\d+)?$|^0\.?(\d+)?$/.test(s);
+  //return /^[1-9]\d*\.?(\d+)?$|^0\.(\d+)?$|^0$/.test(s);
+  return /^-?[1-9]\d*\.?(\d+)?$|^-?0\.(\d+)?$|^0$/.test(s);
 }
 
-type OperatorStrings = "+" | "-" | "*" | "/" | "=";
+type OperatorStrings = "+" | "-" | "*" | "/";
 function isValidOperatorString(s: string): s is OperatorStrings {
-  return /^[\+\-\*\/\=]$/.test(s);
+  return /^[\+\-\*\/]$/.test(s);
 }
 
-type CalculatorViewString = ValidNumberString | OperatorStrings | "C";
+type CalculatorViewString = ValidNumberString | OperatorStrings | "C" | "=";
 
 
 const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
   const [display_string, set_display_string] = useState<CalculatorViewString>("0")
+  const [input_available, set_input_available] = useState<boolean>(false);
+  const [operand_lft, set_operand_lft] = useState<number | null>(null);
+  const [operand_rgt, set_operand_rgt] = useState<number | null>(null);
+  const [operator, set_operator] = useState<OperatorStrings | null>(null);
 
   const try_set_display_string = (new_string: string) => {
     if (isValidNumberString(new_string)) {
@@ -47,22 +53,98 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
     }
   }
 
-  const numpad_onclick = (num_str: string) => () => {
-    if (isValidOperatorString(display_string)){
-      // TODO :: implement here // 
+  const do_calculation = (operand: number|null) => {
+    const operand1 = operand_lft;
+    const operand2 = operand || operand_rgt;
+    
+    set_operand_rgt(operand2);
 
-    } else if(isValidNumberString(display_string)){
-      if (display_string === "0"){
-        try_set_display_string(num_str);
-      } else {
-        try_append_display_string(num_str);
-      }
+    console.log("Do calculation");
+    console.log(operand1);
+    console.log(operand2);
+    console.log(operator);
 
-    } else {
-      // ??? //
-
+    const helper_func = (num: number) => {
+      set_operand_lft(num);
+      try_set_display_string(num.toString());
     }
-    return () => { }; // Do nothing
+
+    if (operand1 === null || operand2 === null || operator === null) {
+      console.log("Invalid calculation");
+      return;
+    } else {
+      if (operator === "+") {
+        helper_func(operand1 + operand2);
+      } else if (operator === "-") {
+        helper_func(operand1 - operand2);
+      } else if (operator === "*") {
+        helper_func(operand1 * operand2);
+      } else if (operator === "/") {
+        helper_func(operand1 / operand2);
+      } else {
+        console.log("Invalid operator");
+        return;
+      }
+    }
+  }
+
+  const numpad_onclick = (button_str: string) => () => {
+    if (button_str === "C"){
+      // Clear
+      try_set_display_string("0");
+      set_input_available(false);
+      set_operand_lft(null);
+      set_operand_rgt(null);
+      set_operator(null);
+
+    } else if (button_str === "="){
+
+      const display_number = parseFloat(display_string);
+      if(input_available){
+        do_calculation(display_number);
+      } else {
+        do_calculation(null);
+      }
+      set_input_available(false);
+
+    } else if(isValidOperatorString(button_str)){
+      // Operator 
+
+      const display_number = parseFloat(display_string);
+
+      if (operand_lft === null) {
+        set_operand_lft(display_number);
+        set_input_available(false);
+        set_operator(button_str);
+      } else {
+        //set_operand_rgt(display_number);
+        if(input_available){
+          do_calculation(display_number);
+        }
+        set_input_available(false);
+        set_operator(button_str);
+      } 
+
+    } else if(isValidNumberString(button_str) || button_str === "."){
+      // Number
+
+      if (!input_available) {
+        if(button_str === "."){
+          try_set_display_string("0" + button_str);
+        }
+        else {
+          try_set_display_string(button_str);
+        }
+        set_input_available(true);
+      } else {
+        try_append_display_string(button_str);
+        set_input_available(true);
+      }
+    }
+
+    return (_: any) => { 
+      console.log("Do nothing"); // Do nothing
+    }; 
   }
 
   const create_button = (button_string: string) => {
@@ -77,14 +159,37 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
       </>);
     }
 
-    if (isValidNumberString(button_string)) {
+    if (isValidNumberString(button_string) || button_string === ".") {
       return helper_func("bg-cyan-600");
-    } else if (isValidOperatorString(button_string)) {
+    } else if (isValidOperatorString(button_string) || button_string === "=") {
       return helper_func("bg-green-600");
-    } else { 
+    } else if (button_string === "C") { 
+      return helper_func("bg-pink-600");
+    } else {
       return helper_func("bg-gray-600");
     }
   }
+
+  const keybord_table = [
+    ["7", "8", "9", "+"],
+    ["4", "5", "6", "-"],
+    ["1", "2", "3", "*"],
+    [".", "0", "=", "/"],
+    ["C", " ", " ", " "]
+  ];
+
+  const keybord_render = keybord_table.map((row, index1) => {
+    return (
+        <div key={index1} className={`grid grid-cols-${row.length} gap-2`}>
+          {row.map((button_string, index2) => {
+            return (<React.Fragment key={`${index1}-${index2}`}>
+              {create_button(button_string)}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      );
+  });
 
   return (
     <>
@@ -93,41 +198,9 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
           <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
             <span className="text-gray-700 select-none">{display_string}</span>
           </div>
-
-          {/* １列目 START */}
-          <div className="grid grid-cols-10 gap-2">
-            {create_button("0")}
-            {create_button("1")}
-            {create_button("2")}
-            {create_button("3")}
-            {create_button("4")}
-            {create_button("5")}
-            {create_button("6")}
-            {create_button("7")}
-            {create_button("8")}
-            {create_button("9")}
-          </div>
-          {/* １列目 END */}
-
-          {/* ２列目 START */}
-          <div className="grid grid-cols-10 gap-2">
-            {create_button(".")}
-            {create_button("+")}
-            {create_button("-")}
-            {create_button("/")}
-            {create_button("*")}
-            {create_button("=")}
-            {create_button(" ")}
-            {create_button(" ")}
-            {create_button(" ")}
-            {create_button(" ")}
-          </div>
-          {/* ２列目 END */}
-
+          {keybord_render}
         </div>
       </div>
-
-      {/* Calculator End */}
     </>
   );
 };
