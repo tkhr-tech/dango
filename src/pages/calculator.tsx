@@ -32,26 +32,31 @@ type CalculatorViewString = ValidNumberString | OperatorStrings | "C" | "=";
 
 const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
   const [display_string, set_display_string] = useState<CalculatorViewString>("0")
-  const [input_available, set_input_available] = useState<boolean>(false);
+  const [flag_eq_repeat, set_flag_eq_repeat] = useState<boolean>(false);
+  const [flag_new_input, set_flag_new_input] = useState<boolean>(true);
   const [operand_lft, set_operand_lft] = useState<number | null>(null);
   const [operand_rgt, set_operand_rgt] = useState<number | null>(null);
   const [operator, set_operator] = useState<OperatorStrings | null>(null);
 
-  const try_set_display_string = (new_string: string) => {
+  const try_set_display_string = (new_string: string): Boolean => {
     if (isValidNumberString(new_string)) {
       set_display_string(new_string);
+      return true;
     } else {
       console.log("Invalid number string");
+      return false;
     }
-  }
-  const try_append_display_string = (new_string: string) => {
+  };
+  const try_append_display_string = (new_string: string): Boolean => {
     const tying_string = display_string + new_string
     if (isValidNumberString(tying_string)) {
       set_display_string(tying_string);
+      return true;
     } else {
       console.log("Invalid number string");
+      return false;
     }
-  }
+  };
 
   const do_calculation = (operand: number|null) => {
     const operand1 = operand_lft;
@@ -92,7 +97,8 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
     if (button_str === "C"){
       // Clear
       try_set_display_string("0");
-      set_input_available(false);
+      set_flag_eq_repeat(false);
+      set_flag_new_input(true);
       set_operand_lft(null);
       set_operand_rgt(null);
       set_operator(null);
@@ -100,12 +106,12 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
     } else if (button_str === "="){
 
       const display_number = parseFloat(display_string);
-      if(input_available){
-        do_calculation(display_number);
-      } else {
+      if(flag_eq_repeat){
         do_calculation(null);
+      } else {
+        do_calculation(display_number);
       }
-      set_input_available(false);
+      set_flag_eq_repeat(true);
 
     } else if(isValidOperatorString(button_str)){
       // Operator 
@@ -114,32 +120,40 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
 
       if (operand_lft === null) {
         set_operand_lft(display_number);
-        set_input_available(false);
         set_operator(button_str);
+        set_flag_new_input(true);
       } else {
-        //set_operand_rgt(display_number);
-        if(input_available){
-          do_calculation(display_number);
-        }
-        set_input_available(false);
+        set_operand_rgt(display_number)
         set_operator(button_str);
+        set_flag_new_input(true);
       } 
 
     } else if(isValidNumberString(button_str) || button_str === "."){
-      // Number
 
-      if (!input_available) {
-        if(button_str === "."){
-          try_set_display_string("0" + button_str);
+      if(flag_new_input){
+        if(try_set_display_string(button_str)){
+          // OK
+          set_operand_rgt(null);
         }
-        else {
-          try_set_display_string(button_str);
-        }
-        set_input_available(true);
+        set_flag_new_input(false);
       } else {
-        try_append_display_string(button_str);
-        set_input_available(true);
+
+        if( try_append_display_string(button_str) ){
+          // OK 
+          set_operand_rgt(null);
+        } else {
+          if (display_string === "0") {
+            if(try_set_display_string(button_str)){
+              // OK
+              set_operand_rgt(null);
+            }
+          } else {
+            // たぶん、不正な操作
+          }
+        }
       }
+
+      set_flag_eq_repeat(false);
     }
 
     return (_: any) => { 
@@ -195,6 +209,21 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
     <>
       <div className="m-10 p-4 w-2/3 mx-auto shadow-lg border-2 rounded-2xl">
         <div className="mx-auto">
+          <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
+            <span className="text-gray-700 select-none">{operand_lft || "___"}</span>
+          </div>
+          <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
+            <span className="text-gray-700 select-none">{operator || "___"}</span>
+          </div>
+          <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
+            <span className="text-gray-700 select-none">{operand_rgt || "___"}</span>
+          </div>
+          <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
+            <span className="text-gray-700 select-none">{flag_eq_repeat ? "eq_repating" : "___"}</span>
+          </div>
+          <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
+            <span className="text-gray-700 select-none">{flag_new_input ? "new_input" : "___"}</span>
+          </div>
           <div className="p-3 mb-3 border-2 rounded h-full w-full text-right">
             <span className="text-gray-700 select-none">{display_string}</span>
           </div>
