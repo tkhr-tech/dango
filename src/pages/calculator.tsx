@@ -21,6 +21,10 @@ function isValidNumberString(s: string): s is ValidNumberString {
   //return /^[1-9]\d*\.?(\d+)?$|^0\.(\d+)?$|^0$/.test(s);
   return /^-?[1-9]\d*\.?(\d+)?$|^-?0\.(\d+)?$|^0$/.test(s);
 }
+// function isValidNumberString(s: string): s is ValidNumberString {
+//   const num = Number(s);
+//   return !Number.isNaN(num);
+// }
 
 type OperatorStrings = "+" | "-" | "*" | "/";
 function isValidOperatorString(s: string): s is OperatorStrings {
@@ -38,7 +42,7 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
   const [operand_rgt, set_operand_rgt] = useState<number | null>(null);
   const [operator, set_operator] = useState<OperatorStrings | null>(null);
 
-  const try_set_display_string = (new_string: string): Boolean => {
+  const try_set_display_string = (new_string: string): boolean => {
     if (isValidNumberString(new_string)) {
       set_display_string(new_string);
       return true;
@@ -47,7 +51,7 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
       return false;
     }
   };
-  const try_append_display_string = (new_string: string): Boolean => {
+  const try_append_display_string = (new_string: string): boolean => {
     const tying_string = display_string + new_string
     if (isValidNumberString(tying_string)) {
       set_display_string(tying_string);
@@ -112,6 +116,7 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
         do_calculation(display_number);
       }
       set_flag_eq_repeat(true);
+      set_flag_new_input(true);
 
     } else if(isValidOperatorString(button_str)){
       // Operator 
@@ -120,6 +125,10 @@ const IndexPage: NextPage<Props> = ({ countries }: Props): ReactElement => {
 
       if (operand_lft === null) {
         set_operand_lft(display_number);
+        set_operator(button_str);
+        set_flag_new_input(true);
+      } else if (!flag_new_input) {
+        do_calculation(display_number);
         set_operator(button_str);
         set_flag_new_input(true);
       } else {
